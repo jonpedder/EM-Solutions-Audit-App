@@ -1,6 +1,7 @@
 const CONFIG = Object.freeze({
   portalUrl: "https://publicsafety.maps.arcgis.com",
   oauthClientId: "2eURPxapfMdaZiS7",
+  webMapItemId: "960844e399eb4574a054cfb2e089ab4a",
   controlServiceItemId: "b66c382e79464d63a6ed2f078eb28215",
   auditTableName: "EM_Operations_Audit_Log",
   pageSize: 200
@@ -63,13 +64,15 @@ const state = {
   sortDirection: "desc",
   nextStart: 0,
   hasMore: false,
-  loading: false
+  loading: false,
+  mapInitialized: false
 };
 
 let OAuthInfo;
 let esriId;
 let Portal;
 let PortalItem;
+let WebMap;
 let FeatureLayer;
 let GraphicsLayer;
 let Graphic;
@@ -183,6 +186,7 @@ async function initializeSdk() {
     esriId,
     Portal,
     PortalItem,
+    WebMap,
     FeatureLayer,
     GraphicsLayer,
     Graphic,
@@ -195,6 +199,7 @@ async function initializeSdk() {
     "@arcgis/core/identity/IdentityManager.js",
     "@arcgis/core/portal/Portal.js",
     "@arcgis/core/portal/PortalItem.js",
+    "@arcgis/core/WebMap.js",
     "@arcgis/core/layers/FeatureLayer.js",
     "@arcgis/core/layers/GraphicsLayer.js",
     "@arcgis/core/Graphic.js",
@@ -213,17 +218,25 @@ async function initializeSdk() {
   esriId.registerOAuthInfos([oauthInfo]);
 }
 
-async function initializeMap() {
+async function initializeMap(portal) {
+  if (state.mapInitialized) return;
+
   await customElements.whenDefined("arcgis-map");
+  const webMap = new WebMap({
+    portalItem: new PortalItem({ id: CONFIG.webMapItemId, portal })
+  });
+  await webMap.load();
+  els.auditMap.map = webMap;
   await els.auditMap.viewOnReady();
+
   state.mapGraphics = new GraphicsLayer({ title: "Resolved audit source feature", listMode: "hide" });
   els.auditMap.map.add(state.mapGraphics);
-
   els.auditMap.view.on("click", async (event) => {
     const hit = await els.auditMap.view.hitTest(event, { include: state.mapGraphics });
     const result = hit.results.find((candidate) => candidate.graphic?.attributes?.event_id);
     if (result) selectRecord(result.graphic.attributes.event_id, { resolveMap: false, scroll: true });
   });
+  state.mapInitialized = true;
 }
 
 async function checkAuthentication() {
@@ -270,6 +283,7 @@ async function onAuthenticated() {
     els.signInButton.hidden = true;
     els.signOutButton.hidden = false;
 
+    await initializeMap(portal);
     await resolveAuditTable(portal);
     await populateFilterOptions();
     setControlsEnabled(true);
@@ -651,7 +665,6 @@ async function main() {
   showState("loading");
   try {
     await initializeSdk();
-    await initializeMap();
     await checkAuthentication();
   } catch (error) {
     els.fatalError.textContent = `Application initialization failed: ${errorMessage(error)}`;
