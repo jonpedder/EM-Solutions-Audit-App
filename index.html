@@ -16,12 +16,18 @@
 
   <calcite-shell id="appShell">
     <header class="app-header" slot="header">
-      <div>
-        <p class="eyebrow">Emergency Management Audit - Powered By ArcGIS Workflow Manager</p>
-        <h1>Operations Audit Monitor</h1>
-        <p class="subtitle">Read-only change history and source-feature locator</p>
+      <div class="app-brand">
+        <svg class="app-brand-mark" viewBox="0 0 48 56" aria-hidden="true">
+          <path d="M24 3 42 10v15c0 13-8 22-18 28C14 47 6 38 6 25V10Z"></path>
+          <path d="M15 20h18M15 27h18M15 34h12"></path>
+        </svg>
+        <div class="app-brand-copy">
+          <p class="eyebrow">Powered by ArcGIS Workflow Manager</p>
+          <h1>Operations Audit Monitor</h1>
+          <p class="subtitle">Read-only change history and source-feature locator</p>
+        </div>
       </div>
-      <div class="identity-actions">
+      <div class="identity-actions" aria-label="ArcGIS session">
         <calcite-button href="https://experience.arcgis.com/experience/955a77f3c6fd4c6c95aec8d909f25cd1" target="_blank" rel="noopener noreferrer" appearance="outline" kind="neutral" icon-start="launch">Emergency Manager Solution</calcite-button>
         <div id="identitySummary" class="identity-summary" aria-live="polite">Signed out</div>
         <calcite-button id="signInButton" appearance="solid" kind="brand" icon-start="sign-in">Sign in</calcite-button>

@@ -296,7 +296,7 @@ async function onAuthenticated() {
   try {
     const portal = new Portal({ url: CONFIG.portalUrl, authMode: "immediate" });
     await withTimeout(portal.load(), 20000, "Portal sign-in");
-    els.identitySummary.textContent = `${portal.user?.fullName || portal.user?.username || "Authorized user"} · ${portal.name || "Public Safety"}`;
+    els.identitySummary.textContent = `Signed in as ${portal.user?.fullName || portal.user?.username || "Authorized user"} · ${portal.name || "Public Safety"}`;
     els.signInButton.hidden = true;
     els.signOutButton.hidden = false;
 
