@@ -3,7 +3,7 @@ const CONFIG = Object.freeze({
   oauthClientId: "2eURPxapfMdaZiS7",
   oauthPopupCallbackUrl: "https://jonpedder.github.io/EM-Solutions-Audit-App/oauth-callback.html",
   webMapItemId: "960844e399eb4574a054cfb2e089ab4a",
-  controlServiceItemId: "b66c382e79464d63a6ed2f078eb28215",
+  controlServiceItemId: "1bf53b90d36341e5a8f8959ee3163199",
   auditTableName: "EM_Operations_Audit_Log",
   pageSize: 200
 });
