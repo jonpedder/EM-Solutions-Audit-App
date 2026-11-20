@@ -1,6 +1,7 @@
 const CONFIG = Object.freeze({
   portalUrl: "https://publicsafety.maps.arcgis.com",
   oauthClientId: "2eURPxapfMdaZiS7",
+  oauthPopupCallbackUrl: "https://jonpedder.github.io/EM-Solutions-Audit-App/oauth-callback.html",
   webMapItemId: "960844e399eb4574a054cfb2e089ab4a",
   controlServiceItemId: "b66c382e79464d63a6ed2f078eb28215",
   auditTableName: "EM_Operations_Audit_Log",
@@ -213,7 +214,8 @@ async function initializeSdk() {
   oauthInfo = new OAuthInfo({
     appId: CONFIG.oauthClientId,
     portalUrl: CONFIG.portalUrl,
-    popup: !isMobile
+    popup: !isMobile,
+    popupCallbackUrl: CONFIG.oauthPopupCallbackUrl
   });
   esriId.registerOAuthInfos([oauthInfo]);
 }

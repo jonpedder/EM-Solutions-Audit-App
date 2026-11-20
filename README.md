@@ -6,4 +6,10 @@ The application contains no credentials. Users must sign in to the Esri Public S
 
 The feature locator loads private ArcGIS Web Map `960844e399eb4574a054cfb2e089ab4a` after authentication. Current source geometry is drawn as a temporary selection graphic; the web map remains the saved ArcGIS map definition.
 
+OAuth redirect URLs:
+
+- https://jonpedder.github.io/EM-Solutions-Audit-App/
+- https://jonpedder.github.io/EM-Solutions-Audit-App/index.html
+- https://jonpedder.github.io/EM-Solutions-Audit-App/oauth-callback.html
+
 Site: https://jonpedder.github.io/EM-Solutions-Audit-App/
