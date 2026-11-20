@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en" class="calcite-mode-dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Read-only Emergency Management Operations audit monitor">
+  <title>EM Operations Audit Monitor</title>
+  <link rel="stylesheet" href="https://js.arcgis.com/5.1/esri/themes/dark/main.css">
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="https://js.arcgis.com/5.1/"></script>
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#auditFeed">Skip to audit feed</a>
+
+  <calcite-shell id="appShell">
+    <header class="app-header" slot="header">
+      <div>
+        <p class="eyebrow">CA Security Operations · Emergency Management</p>
+        <h1>Operations Audit Monitor</h1>
+        <p class="subtitle">Read-only change history and source-feature locator</p>
+      </div>
+      <div class="identity-actions">
+        <div id="identitySummary" class="identity-summary" aria-live="polite">Signed out</div>
+        <calcite-button id="signInButton" appearance="solid" kind="brand" icon-start="sign-in">Sign in</calcite-button>
+        <calcite-button id="signOutButton" appearance="outline" kind="neutral" icon-start="sign-out" hidden>Sign out</calcite-button>
+      </div>
+    </header>
+
+    <main id="workspace" class="workspace" aria-busy="false">
+      <section class="filter-panel panel" aria-labelledby="filtersHeading">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Query controls</p>
+            <h2 id="filtersHeading">Audit filters</h2>
+          </div>
+          <calcite-button id="refreshButton" appearance="outline" kind="neutral" icon-start="refresh" disabled>Refresh</calcite-button>
+        </div>
+        <form id="filterForm" class="filters">
+          <label>Start date (UTC)
+            <input id="startDate" type="date" name="startDate">
+          </label>
+          <label>End date (UTC)
+            <input id="endDate" type="date" name="endDate">
+          </label>
+          <label>Operation
+            <select id="operationFilter" name="operation">
+              <option value="">All operations</option>
+            </select>
+          </label>
+          <label>Service
+            <select id="serviceFilter" name="service">
+              <option value="">All services</option>
+            </select>
+          </label>
+          <label>Change type
+            <select id="changeTypeFilter" name="changeType">
+              <option value="">All changes</option>
+              <option value="ADD">Add</option>
+              <option value="UPDATE_ATTRIBUTES">Attributes</option>
+              <option value="UPDATE_GEOMETRY">Geometry</option>
+              <option value="UPDATE_BOTH">Attributes + geometry</option>
+              <option value="DELETE">Delete</option>
+            </select>
+          </label>
+          <div class="filter-actions">
+            <calcite-button id="applyFiltersButton" type="submit" appearance="solid" kind="brand" icon-start="filter" disabled>Apply</calcite-button>
+            <calcite-button id="clearFiltersButton" type="button" appearance="outline" kind="neutral" disabled>Reset</calcite-button>
+          </div>
+        </form>
+      </section>
+
+      <section class="kpi-strip" aria-label="Loaded audit summary">
+        <article class="kpi"><span>Loaded events</span><strong id="kpiTotal">—</strong></article>
+        <article class="kpi"><span>Adds</span><strong id="kpiAdds">—</strong></article>
+        <article class="kpi"><span>Updates</span><strong id="kpiUpdates">—</strong></article>
+        <article class="kpi"><span>Deletes</span><strong id="kpiDeletes">—</strong></article>
+      </section>
+
+      <section id="statusRegion" class="status-region" aria-live="polite">
+        <div id="signedOutState" class="state-card">
+          <calcite-icon icon="lock" scale="l" aria-hidden="true"></calcite-icon>
+          <div><strong>Authentication required</strong><p>Sign in with an authorized Public Safety ArcGIS Online account to query the private audit service.</p></div>
+        </div>
+        <div id="loadingState" class="state-card" hidden>
+          <calcite-loader label="Loading audit records" inline></calcite-loader>
+          <div><strong>Loading audit data</strong><p>Resolving the control service and applying filters…</p></div>
+        </div>
+        <div id="errorState" class="state-card state-error" role="alert" hidden>
+          <calcite-icon icon="exclamation-mark-triangle" scale="l" aria-hidden="true"></calcite-icon>
+          <div><strong>Audit data unavailable</strong><p id="errorMessage"></p></div>
+        </div>
+        <div id="emptyState" class="state-card" hidden>
+          <calcite-icon icon="file-magnifying-glass" scale="l" aria-hidden="true"></calcite-icon>
+          <div><strong>No matching audit events</strong><p>Change the date range or filters, then apply the query again.</p></div>
+        </div>
+      </section>
+
+      <section id="contentGrid" class="content-grid" hidden>
+        <section id="auditFeed" class="feed-panel panel" tabindex="-1" aria-labelledby="feedHeading">
+          <div class="panel-heading">
+            <div><p class="eyebrow">Audit ledger</p><h2 id="feedHeading">Recent changes</h2></div>
+            <span id="resultSummary" class="result-summary"></span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col"><button class="sort-button" data-sort="event_timestamp">Event time <span aria-hidden="true"></span></button></th>
+                  <th scope="col"><button class="sort-button" data-sort="emergency_op_name">Operation <span aria-hidden="true"></span></button></th>
+                  <th scope="col"><button class="sort-button" data-sort="service_name">Service / layer <span aria-hidden="true"></span></button></th>
+                  <th scope="col"><button class="sort-button" data-sort="change_type">Change <span aria-hidden="true"></span></button></th>
+                  <th scope="col"><button class="sort-button" data-sort="authenticated_user">Editor <span aria-hidden="true"></span></button></th>
+                  <th scope="col">Map</th>
+                </tr>
+              </thead>
+              <tbody id="auditTableBody"></tbody>
+            </table>
+          </div>
+          <div class="feed-footer">
+            <p id="truncationNote" class="muted"></p>
+            <calcite-button id="loadMoreButton" appearance="outline" kind="neutral" hidden>Load more</calcite-button>
+          </div>
+        </section>
+
+        <section class="map-detail-stack" aria-label="Map and selected event details">
+          <div class="map-panel panel">
+            <div class="panel-heading compact">
+              <div><p class="eyebrow">Current source geometry</p><h2>Feature locator</h2></div>
+            </div>
+            <arcgis-map id="auditMap" basemap="dark-gray-vector" center="-98,39" zoom="3" aria-label="Current source feature map">
+              <arcgis-home slot="top-left"></arcgis-home>
+              <arcgis-zoom slot="top-left"></arcgis-zoom>
+            </arcgis-map>
+            <div id="mapMessage" class="map-message" aria-live="polite">Select a non-delete event to resolve its current source feature.</div>
+          </div>
+
+          <aside class="detail-panel panel" aria-labelledby="detailHeading">
+            <div class="panel-heading compact"><div><p class="eyebrow">Selected record</p><h2 id="detailHeading">Event details</h2></div></div>
+            <div id="detailEmpty" class="detail-empty">Select an audit row or mapped feature.</div>
+            <dl id="detailList" hidden></dl>
+            <div id="changedFieldsSection" hidden>
+              <h3>Changed fields</h3>
+              <pre id="changedFields"></pre>
+            </div>
+          </aside>
+        </section>
+      </section>
+    </main>
+  </calcite-shell>
+
+  <div id="fatalError" class="fatal-error" role="alert" hidden></div>
+</body>
+</html>
