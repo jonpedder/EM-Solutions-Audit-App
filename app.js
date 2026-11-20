@@ -55,6 +55,7 @@ const els = Object.freeze({
 
 const state = {
   auditLayer: null,
+  auditQueryUrl: null,
   serviceUrl: null,
   records: [],
   recordByEventId: new Map(),
@@ -180,6 +181,19 @@ function errorMessage(error) {
   return raw.replace(/token=[^&\s]+/gi, "token=[redacted]");
 }
 
+function isUserAbort(error) {
+  const value = `${error?.name || ""} ${error?.message || ""}`.toLowerCase();
+  return value.includes("user-aborted") || value.includes("user aborted") || value.includes("aborted");
+}
+
+function withTimeout(promise, milliseconds, label) {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = window.setTimeout(() => reject(new Error(`${label} timed out after ${Math.round(milliseconds / 1000)} seconds.`)), milliseconds);
+  });
+  return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timeoutId));
+}
+
 async function initializeSdk() {
   if (!globalThis.$arcgis) throw new Error("ArcGIS Maps SDK 5.1 did not load.");
   [
@@ -243,7 +257,7 @@ async function initializeMap(portal) {
 
 async function checkAuthentication() {
   try {
-    await esriId.checkSignInStatus(`${CONFIG.portalUrl}/sharing`);
+    await withTimeout(esriId.checkSignInStatus(`${CONFIG.portalUrl}/sharing`), 12000, "Stored sign-in check");
     await onAuthenticated();
   } catch {
     showSignedOut();
@@ -264,7 +278,8 @@ async function signIn() {
     await esriId.getCredential(`${CONFIG.portalUrl}/sharing`);
     await onAuthenticated();
   } catch (error) {
-    if (error?.name !== "identity-manager:user-aborted") showState("error", `Sign-in failed: ${errorMessage(error)}`);
+    if (!isUserAbort(error)) showState("error", `Sign-in failed: ${errorMessage(error)}`);
+    else showSignedOut();
   } finally {
     els.signInButton.loading = false;
   }
@@ -280,16 +295,21 @@ async function onAuthenticated() {
   setControlsEnabled(false);
   try {
     const portal = new Portal({ url: CONFIG.portalUrl, authMode: "immediate" });
-    await portal.load();
+    await withTimeout(portal.load(), 20000, "Portal sign-in");
     els.identitySummary.textContent = `${portal.user?.fullName || portal.user?.username || "Authorized user"} · ${portal.name || "Public Safety"}`;
     els.signInButton.hidden = true;
     els.signOutButton.hidden = false;
 
-    await initializeMap(portal);
-    await resolveAuditTable(portal);
-    await populateFilterOptions();
+    // Audit data is the primary workflow. Do not block it on the operational
+    // web map, which can contain many private source layers and load slowly.
+    await withTimeout(resolveAuditTable(portal), 20000, "Control service lookup");
+    await withTimeout(populateFilterOptions(), 20000, "Audit filter lookup");
     setControlsEnabled(true);
     await queryAuditRecords({ reset: true });
+
+    initializeMap(portal).catch((error) => {
+      setMapMessage(`Operational map unavailable: ${errorMessage(error)}`, "error");
+    });
   } catch (error) {
     showState("error", `Unable to initialize the audit monitor: ${errorMessage(error)}`);
     setControlsEnabled(false);
@@ -308,6 +328,7 @@ async function resolveAuditTable(portal) {
   if (!auditTable) throw new Error(`Table ${CONFIG.auditTableName} was not found in the control service.`);
 
   state.serviceUrl = serviceUrl;
+  state.auditQueryUrl = `${serviceUrl}/${auditTable.id}/query`;
   state.auditLayer = new FeatureLayer({
     url: `${serviceUrl}/${auditTable.id}`,
     title: CONFIG.auditTableName,
@@ -344,14 +365,24 @@ async function populateFilterOptions() {
   );
 }
 
+async function requestAuditFeatures(parameters) {
+  if (!state.auditQueryUrl) throw new Error("The audit table query URL is unavailable.");
+  const response = await esriRequest(state.auditQueryUrl, {
+    query: { f: "json", ...parameters },
+    responseType: "json"
+  });
+  if (response.data?.error) throw new Error(response.data.error.message || "The audit service rejected the query.");
+  return response.data || {};
+}
+
 async function queryDistinct(outFields) {
-  const query = state.auditLayer.createQuery();
-  query.where = "1=1";
-  query.outFields = outFields;
-  query.returnGeometry = false;
-  query.returnDistinctValues = true;
-  const result = await state.auditLayer.queryFeatures(query);
-  return result.features;
+  const result = await requestAuditFeatures({
+    where: "1=1",
+    outFields: outFields.join(","),
+    returnGeometry: false,
+    returnDistinctValues: true
+  });
+  return result.features || [];
 }
 
 function replaceOptions(select, allLabel, options) {
@@ -374,16 +405,16 @@ async function queryAuditRecords({ reset }) {
 
   try {
     if (!SORT_FIELDS.has(state.sortField)) throw new Error("Unsupported sort field.");
-    const query = state.auditLayer.createQuery();
-    query.where = buildWhereClause();
-    query.outFields = ["*"];
-    query.returnGeometry = false;
-    query.orderByFields = [`${state.sortField} ${state.sortDirection.toUpperCase()}`, "OBJECTID DESC"];
-    query.start = state.nextStart;
-    query.num = CONFIG.pageSize;
-
-    const result = await state.auditLayer.queryFeatures(query);
-    const incoming = result.features.map((feature) => feature.attributes);
+    const result = await withTimeout(requestAuditFeatures({
+      where: buildWhereClause(),
+      outFields: "*",
+      returnGeometry: false,
+      orderByFields: `${state.sortField} ${state.sortDirection.toUpperCase()},OBJECTID DESC`,
+      resultOffset: state.nextStart,
+      resultRecordCount: CONFIG.pageSize,
+      returnExceededLimitFeatures: true
+    }), 20000, "Audit record query");
+    const incoming = (result.features || []).map((feature) => feature.attributes);
     state.records.push(...incoming);
     for (const record of incoming) state.recordByEventId.set(record.event_id, record);
     state.nextStart += incoming.length;
