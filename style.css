@@ -218,9 +218,9 @@ th { color: var(--muted); font-size: 0.68rem; letter-spacing: 0.05em; text-trans
 .export-status { margin-left: auto; color: var(--muted); font-size: 0.7rem; }
 .export-status:not(:empty) { padding: 0.25rem 0.45rem; border-left: 2px solid var(--gold); }
 
-.map-detail-stack { display: grid; grid-template-rows: minmax(340px, 1.15fr) minmax(245px, 0.85fr); gap: 0.65rem; min-width: 0; }
-.map-panel { position: relative; display: grid; grid-template-rows: auto 1fr auto; min-height: 340px; }
-arcgis-map { width: 100%; min-height: 280px; }
+.map-detail-stack { display: grid; grid-template-rows: minmax(285px, 0.9fr) minmax(300px, 1.1fr); gap: 0.65rem; min-width: 0; }
+.map-panel { position: relative; display: grid; grid-template-rows: auto 1fr auto; min-height: 285px; }
+arcgis-map { width: 100%; min-height: 225px; }
 .map-message { min-height: 38px; padding: 0.55rem 0.7rem; border-top: 1px solid var(--border); color: var(--muted); background: #081b28; font-size: 0.73rem; }
 .map-message.is-error { color: #ff9baa; }
 .map-message.is-success { color: #7ee0b4; }
