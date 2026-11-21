@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en" class="calcite-mode-dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Emergency Management Audit Monitor settings and operator help">
+  <title>Emergency Management Audit Monitor Settings</title>
+  <link rel="stylesheet" href="./style.css?v=20261120-3">
+  <script type="module" src="./settings.js?v=20261120-1"></script>
+</head>
+<body class="settings-page">
+  <header class="app-header settings-header">
+    <div class="app-brand">
+      <svg class="app-brand-mark" viewBox="0 0 48 56" aria-hidden="true">
+        <path d="M24 3 42 10v15c0 13-8 22-18 28C14 47 6 38 6 25V10Z"></path>
+        <path d="M15 20h18M15 27h18M15 34h12"></path>
+      </svg>
+      <div class="app-brand-copy">
+        <h1><span id="settingsAppTitle">Emergency Management Audit Monitor</span> Settings</h1>
+        <p class="powered-by">Powered by ArcGIS Workflow Manager</p>
+      </div>
+    </div>
+    <nav class="settings-nav" aria-label="Primary navigation">
+      <a class="nav-button" href="./index.html">Audit Monitor</a>
+      <a class="nav-button is-current" href="./settings.html#configuration" aria-current="page">Settings</a>
+      <a class="nav-button" href="./settings.html#help">Help</a>
+    </nav>
+  </header>
+
+  <nav class="settings-tabs" role="tablist" aria-label="Settings sections">
+    <button id="configurationTab" class="tab-button" role="tab" aria-selected="true" aria-controls="configurationPanel">Configuration</button>
+    <button id="helpTab" class="tab-button" role="tab" aria-selected="false" aria-controls="helpPanel">Help &amp; How-to</button>
+  </nav>
+
+  <main class="settings-main">
+    <section id="configurationPanel" class="settings-panel" role="tabpanel" aria-labelledby="configurationTab">
+      <div class="settings-card">
+        <div class="settings-card-heading"><div><p class="eyebrow">Presentation</p><h2>Application identity</h2></div></div>
+        <div class="settings-form-grid">
+          <label>Application title
+            <input id="appTitleInput" maxlength="80" autocomplete="off">
+          </label>
+          <label>Subtitle
+            <input id="subtitleInput" maxlength="140" autocomplete="off">
+          </label>
+          <label class="checkbox-field"><input id="showSolutionLinkInput" type="checkbox"> Show Emergency Manager Solution link</label>
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <div class="settings-card-heading"><div><p class="eyebrow">Defaults</p><h2>Audit workspace</h2></div></div>
+        <p class="settings-help">These browser-local settings change the initial view. Operators can still adjust filters during a session.</p>
+        <div class="settings-form-grid">
+          <label>Default date window
+            <select id="defaultDaysInput">
+              <option value="1">Last day</option>
+              <option value="7">Last 7 days</option>
+              <option value="14">Last 14 days</option>
+              <option value="30">Last 30 days</option>
+              <option value="90">Last 90 days</option>
+            </select>
+          </label>
+          <label>Rows per request
+            <select id="pageSizeInput">
+              <option value="50">50</option>
+              <option value="100">100</option>
+              <option value="200">200</option>
+              <option value="500">500</option>
+            </select>
+          </label>
+          <label>Default basemap
+            <select id="basemapInput">
+              <option value="webmap">Saved Web Map default</option>
+              <option value="dark-gray-vector">Dark gray canvas</option>
+              <option value="gray-vector">Light gray canvas</option>
+              <option value="streets-vector">Streets</option>
+              <option value="topo-vector">Topographic</option>
+              <option value="satellite">Imagery</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-card settings-actions-card">
+        <p class="settings-help"><strong>Scope:</strong> settings are saved in this browser only. They do not change ArcGIS item sharing, Workflow Manager, source services, or audit records.</p>
+        <div class="settings-actions">
+          <button id="saveSettings" class="nav-button is-primary" type="button">Save settings</button>
+          <button id="resetSettings" class="nav-button" type="button">Reset defaults</button>
+          <button id="exportSettings" class="nav-button" type="button">Export JSON</button>
+          <label class="nav-button file-button">Import JSON<input id="importSettings" type="file" accept="application/json,.json"></label>
+          <span id="settingsMessage" class="settings-message" role="status" aria-live="polite"></span>
+        </div>
+      </div>
+    </section>
+
+    <section id="helpPanel" class="settings-panel" role="tabpanel" aria-labelledby="helpTab" hidden>
+      <div class="help-layout">
+        <nav class="help-nav" aria-label="Help topics">
+          <strong>In this guide</strong>
+          <a href="#help-about">About</a>
+          <a href="#help-signin">Sign in</a>
+          <a href="#help-filter">Filter and review</a>
+          <a href="#help-map">Map and geometry</a>
+          <a href="#help-export">Export and records</a>
+          <a href="#help-troubleshooting">Troubleshooting</a>
+          <a href="#help-settings">Settings</a>
+        </nav>
+        <div class="help-content">
+          <details id="help-about" class="help-card" open><summary>Emergency Management Audit Monitor</summary><p>The monitor provides authorized users with a read-only view of Emergency Management feature-service changes recorded by the scheduled audit Notebook and ArcGIS Workflow Manager.</p><div class="help-callout"><strong>Authoritative record:</strong> the private hosted audit service and associated Workflow Manager jobs remain the systems of record.</div></details>
+          <details id="help-signin" class="help-card"><summary>Signing in</summary><ol><li>Open the Audit Monitor and select <strong>Sign in</strong>.</li><li>Use an authorized Public Safety ArcGIS Online account.</li><li>Confirm your username appears in the header before reviewing private records.</li></ol><p>If authentication expires, sign out and sign in again. Never copy access tokens into support requests.</p></details>
+          <details id="help-filter" class="help-card"><summary>Filtering and reviewing changes</summary><ol><li>Choose a UTC start and end date.</li><li>Optionally filter by emergency operation, service, or change type.</li><li>Select <strong>Apply</strong> to query the audit service.</li><li>Select a row to open event details and locate the current source feature when available.</li></ol><p>Changed fields are presented as separate <strong>Before</strong> and <strong>After</strong> values. The exact JSON remains available in source exports.</p></details>
+          <details id="help-map" class="help-card"><summary>Map and geometry changes</summary><p>The Feature Locator resolves the selected record's current source feature. For non-delete events, this may differ from the feature geometry at the event timestamp.</p><ul><li><strong>POINT</strong> movement anchors are exact coordinates.</li><li><strong>EXTENT_CENTER</strong> represents the movement of a line, polygon, multipoint, or extent envelope center.</li><li>Deleted features cannot be resolved from the current source layer.</li></ul><div class="help-callout warning"><strong>Do not interpret current geometry as historical geometry.</strong> Always use the event timestamp and movement label when reviewing an incident.</div></details>
+          <details id="help-export" class="help-card"><summary>Exports and records handling</summary><p>The native Dashboard change list can export source rows as CSV. Preserve event IDs, Workflow Manager job IDs, timestamps, and editor attribution when transferring records into an approved reporting process.</p><p>Follow organizational records-retention and information-handling policies. Do not distribute private service URLs or audit extracts to unauthorized recipients.</p></details>
+          <details id="help-troubleshooting" class="help-card"><summary>Troubleshooting</summary><div class="decision-grid"><div><strong>No records</strong><span>Broaden the date range, clear category filters, and apply again.</span></div><div><strong>Unauthorized</strong><span>Sign out and sign in with an account that can access the private control service and Web Map.</span></div><div><strong>Feature cannot be mapped</strong><span>The feature may have been deleted, moved, or become inaccessible. The audit row remains valid.</span></div><div><strong>Slow results</strong><span>Use a shorter date window or reduce rows per request in Settings.</span></div></div></details>
+          <details id="help-settings" class="help-card"><summary>Settings</summary><p>Settings are stored locally in the browser. Save changes, then return to the Audit Monitor or reload an open monitor tab.</p><ul><li><strong>Reset defaults</strong> restores the supported baseline.</li><li><strong>Export JSON</strong> downloads a portable settings file.</li><li><strong>Import JSON</strong> validates a settings file before saving it locally.</li></ul><p>Settings cannot change OAuth registration, portal permissions, service schema, Notebook schedules, or Workflow Manager configuration.</p></details>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

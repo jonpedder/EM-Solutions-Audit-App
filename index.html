@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="dark">
   <meta name="description" content="Read-only Emergency Management Operations audit monitor">
-  <title>EM Operations Audit Monitor</title>
+  <title>Emergency Management Audit Monitor</title>
   <link rel="stylesheet" href="https://js.arcgis.com/5.1/esri/themes/dark/main.css">
   <link rel="stylesheet" href="./style.css">
   <script type="module" src="https://js.arcgis.com/5.1/"></script>
-  <script type="module" src="./app.js?v=20261120-2"></script>
+  <script type="module" src="./app.js?v=20261120-3"></script>
 </head>
 <body>
   <a class="skip-link" href="#auditFeed">Skip to audit feed</a>
@@ -24,11 +24,13 @@
         <div class="app-brand-copy">
           <p class="eyebrow">Powered by ArcGIS Workflow Manager</p>
           <h1>Operations Audit Monitor</h1>
-          <p class="subtitle">Read-only change history and source-feature locator</p>
+          <p id="appSubtitle" class="subtitle">Read-only change history and source-feature locator</p>
         </div>
       </div>
-      <div class="identity-actions" aria-label="ArcGIS session">
-        <calcite-button href="https://experience.arcgis.com/experience/955a77f3c6fd4c6c95aec8d909f25cd1" target="_blank" rel="noopener noreferrer" appearance="outline" kind="neutral" icon-start="launch">Emergency Manager Solution</calcite-button>
+      <div class="identity-actions" aria-label="Application navigation and ArcGIS session">
+        <calcite-button href="./settings.html#configuration" appearance="outline" kind="neutral" icon-start="gear">Settings</calcite-button>
+        <calcite-button href="./settings.html#help" appearance="outline" kind="neutral" icon-start="question">Help</calcite-button>
+        <calcite-button id="solutionLink" href="https://experience.arcgis.com/experience/955a77f3c6fd4c6c95aec8d909f25cd1" target="_blank" rel="noopener noreferrer" appearance="outline" kind="neutral" icon-start="launch">Emergency Manager Solution</calcite-button>
         <div id="identitySummary" class="identity-summary" aria-live="polite">Signed out</div>
         <calcite-button id="signInButton" appearance="solid" kind="brand" icon-start="sign-in">Sign in</calcite-button>
         <calcite-button id="signOutButton" appearance="outline" kind="neutral" icon-start="sign-out" hidden>Sign out</calcite-button>
@@ -159,4 +161,9 @@
 
   <div id="fatalError" class="fatal-error" role="alert" hidden></div>
 </body>
+</html>
+
+</html>
+>
+
 </html>

@@ -1,3 +1,31 @@
+const APP_SETTINGS_KEY = "emAuditMonitor.settings.v1";
+const DEFAULT_APP_SETTINGS = Object.freeze({
+  appTitle: "Emergency Management Audit Monitor",
+  subtitle: "Read-only change history and source-feature locator",
+  defaultDays: 7,
+  pageSize: 200,
+  basemap: "webmap",
+  showSolutionLink: true
+});
+
+function loadAppSettings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(APP_SETTINGS_KEY) || "{}");
+    return {
+      appTitle: typeof saved.appTitle === "string" && saved.appTitle.trim() ? saved.appTitle.trim().slice(0, 80) : DEFAULT_APP_SETTINGS.appTitle,
+      subtitle: typeof saved.subtitle === "string" && saved.subtitle.trim() ? saved.subtitle.trim().slice(0, 140) : DEFAULT_APP_SETTINGS.subtitle,
+      defaultDays: [1, 7, 14, 30, 90].includes(Number(saved.defaultDays)) ? Number(saved.defaultDays) : DEFAULT_APP_SETTINGS.defaultDays,
+      pageSize: [50, 100, 200, 500].includes(Number(saved.pageSize)) ? Number(saved.pageSize) : DEFAULT_APP_SETTINGS.pageSize,
+      basemap: ["webmap", "dark-gray-vector", "gray-vector", "streets-vector", "topo-vector", "satellite"].includes(saved.basemap) ? saved.basemap : DEFAULT_APP_SETTINGS.basemap,
+      showSolutionLink: saved.showSolutionLink !== false
+    };
+  } catch {
+    return { ...DEFAULT_APP_SETTINGS };
+  }
+}
+
+const USER_SETTINGS = loadAppSettings();
+
 const CONFIG = Object.freeze({
   portalUrl: "https://publicsafety.maps.arcgis.com",
   oauthClientId: "2eURPxapfMdaZiS7",
@@ -5,7 +33,7 @@ const CONFIG = Object.freeze({
   webMapItemId: "960844e399eb4574a054cfb2e089ab4a",
   controlServiceItemId: "1bf53b90d36341e5a8f8959ee3163199",
   auditTableName: "EM_Operations_Audit_Log",
-  pageSize: 200
+  pageSize: USER_SETTINGS.pageSize
 });
 
 const SORT_FIELDS = new Set([
@@ -84,10 +112,20 @@ let SimpleLineSymbol;
 let SimpleFillSymbol;
 let oauthInfo;
 
+function applyUserPresentation() {
+  const title = document.querySelector("#appTitle");
+  const subtitle = document.querySelector("#appSubtitle");
+  const solutionLink = document.querySelector("#solutionLink");
+  if (title) title.textContent = USER_SETTINGS.appTitle;
+  if (subtitle) subtitle.textContent = USER_SETTINGS.subtitle;
+  if (solutionLink) solutionLink.hidden = !USER_SETTINGS.showSolutionLink;
+  document.title = USER_SETTINGS.appTitle;
+}
+
 function setDefaultDates() {
   const end = new Date();
   const start = new Date(end);
-  start.setUTCDate(start.getUTCDate() - 7);
+  start.setUTCDate(start.getUTCDate() - USER_SETTINGS.defaultDays);
   els.startDate.value = toDateInput(start);
   els.endDate.value = toDateInput(end);
 }
@@ -242,6 +280,7 @@ async function initializeMap(portal) {
     portalItem: new PortalItem({ id: CONFIG.webMapItemId, portal })
   });
   await webMap.load();
+  if (USER_SETTINGS.basemap !== "webmap") webMap.basemap = USER_SETTINGS.basemap;
   els.auditMap.map = webMap;
   await els.auditMap.viewOnReady();
 
@@ -693,6 +732,7 @@ function wireEvents() {
 }
 
 async function main() {
+  applyUserPresentation();
   setDefaultDates();
   wireEvents();
   showState("loading");

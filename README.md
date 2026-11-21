@@ -1,6 +1,6 @@
 # EM Solutions Audit App
 
-Public static host for the Emergency Management Operations Audit Monitor.
+Public static host for the Emergency Management Audit Monitor.
 
 The application contains no credentials. Users must sign in to the Esri Public Safety ArcGIS Online organization through OAuth, and all data access remains governed by ArcGIS item sharing.
 
@@ -13,3 +13,10 @@ OAuth redirect URLs:
 - https://jonpedder.github.io/EM-Solutions-Audit-App/oauth-callback.html
 
 Site: https://jonpedder.github.io/EM-Solutions-Audit-App/
+
+Settings and operator help:
+
+- https://jonpedder.github.io/EM-Solutions-Audit-App/settings.html#configuration
+- https://jonpedder.github.io/EM-Solutions-Audit-App/settings.html#help
+
+Settings are validated and stored in the current browser under `emAuditMonitor.settings.v1`. They control presentation defaults only: title, subtitle, initial date window, query page size, basemap, and visibility of the Emergency Manager Solution link. They do not modify portal permissions, source items, Notebook schedules, Workflow Manager, or audit records.
