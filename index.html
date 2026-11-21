@@ -9,7 +9,8 @@
   <link rel="stylesheet" href="https://js.arcgis.com/5.1/esri/themes/dark/main.css">
   <link rel="stylesheet" href="./style.css?v=20261120-5">
   <script type="module" src="https://js.arcgis.com/5.1/"></script>
-  <script type="module" src="./app.js?v=20261120-5"></script>
+  <script src="./vendor/jspdf.umd.min.js"></script>
+  <script type="module" src="./app.js?v=20261120-6"></script>
 </head>
 <body>
   <a class="skip-link" href="#auditFeed">Skip to audit feed</a>
@@ -115,7 +116,11 @@
         <section id="auditFeed" class="feed-panel panel" tabindex="-1" aria-labelledby="feedHeading">
           <div class="panel-heading">
             <div><p class="eyebrow">Audit ledger</p><h2 id="feedHeading">Recent changes</h2></div>
-            <span id="resultSummary" class="result-summary"></span>
+            <div class="feed-heading-actions">
+              <span id="resultSummary" class="result-summary"></span>
+              <calcite-button id="exportCsvButton" appearance="outline" kind="neutral" icon-start="download" disabled>CSV</calcite-button>
+              <calcite-button id="exportPdfButton" appearance="solid" kind="brand" icon-start="file-pdf" disabled>PDF report</calcite-button>
+            </div>
           </div>
           <div class="table-wrap">
             <table>
@@ -134,6 +139,7 @@
           </div>
           <div class="feed-footer">
             <p id="truncationNote" class="muted"></p>
+            <span id="exportStatus" class="export-status" role="status" aria-live="polite"></span>
             <calcite-button id="loadMoreButton" appearance="outline" kind="neutral" hidden>Load more</calcite-button>
           </div>
         </section>

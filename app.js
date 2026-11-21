@@ -68,6 +68,9 @@ const els = Object.freeze({
   auditTableBody: document.querySelector("#auditTableBody"),
   resultSummary: document.querySelector("#resultSummary"),
   truncationNote: document.querySelector("#truncationNote"),
+  exportCsvButton: document.querySelector("#exportCsvButton"),
+  exportPdfButton: document.querySelector("#exportPdfButton"),
+  exportStatus: document.querySelector("#exportStatus"),
   loadMoreButton: document.querySelector("#loadMoreButton"),
   kpiTotal: document.querySelector("#kpiTotal"),
   kpiAdds: document.querySelector("#kpiAdds"),
@@ -208,6 +211,10 @@ function setControlsEnabled(enabled) {
   els.refreshButton.disabled = !enabled;
   els.applyFiltersButton.disabled = !enabled;
   els.clearFiltersButton.disabled = !enabled;
+  if (!enabled) {
+    els.exportCsvButton.disabled = true;
+    els.exportPdfButton.disabled = true;
+  }
 }
 
 function setMapMessage(message, kind = "") {
@@ -488,11 +495,193 @@ function renderRecords() {
   els.kpiUpdates.textContent = updates.toLocaleString();
   els.kpiDeletes.textContent = deletes.toLocaleString();
   els.resultSummary.textContent = `${state.records.length.toLocaleString()} loaded`;
+  els.exportCsvButton.disabled = state.records.length === 0;
+  els.exportPdfButton.disabled = state.records.length === 0;
   els.loadMoreButton.hidden = !state.hasMore;
   els.truncationNote.textContent = state.hasMore
     ? `Showing the first ${state.records.length.toLocaleString()} matching rows. Load more to continue.`
     : "All rows returned for the current query are loaded.";
   updateSortIndicators();
+}
+
+async function queryAllMatchingRecords() {
+  const records = [];
+  let offset = 0;
+  const batchSize = 500;
+  const maximum = 20000;
+  while (offset < maximum) {
+    const result = await withTimeout(requestAuditFeatures({
+      where: buildWhereClause(),
+      outFields: "*",
+      returnGeometry: false,
+      orderByFields: `${state.sortField} ${state.sortDirection.toUpperCase()},OBJECTID DESC`,
+      resultOffset: offset,
+      resultRecordCount: batchSize,
+      returnExceededLimitFeatures: true
+    }), 30000, "Audit export query");
+    const incoming = (result.features || []).map((feature) => feature.attributes);
+    records.push(...incoming);
+    offset += incoming.length;
+    if (!result.exceededTransferLimit && incoming.length < batchSize) break;
+    if (incoming.length === 0) break;
+  }
+  if (offset >= maximum) throw new Error(`Export is limited to ${maximum.toLocaleString()} rows. Narrow the filters and try again.`);
+  return records;
+}
+
+function exportFileName(extension) {
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z").replace("T", "-");
+  return `em-audit-trail-${stamp}.${extension}`;
+}
+
+function downloadBlob(blob, name) {
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = name;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+
+function csvValue(value) {
+  if (value === null || value === undefined) return "";
+  let text = String(value).replaceAll("\r\n", "\n").replaceAll("\r", "\n");
+  if (/^[=+@-]/.test(text)) text = `'${text}`;
+  return `"${text.replaceAll('"', '""')}"`;
+}
+
+function isoDate(value) {
+  if (value === null || value === undefined || value === "") return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toISOString();
+}
+
+function readableChangedFields(record) {
+  if (record.changed_fields_text) return String(record.changed_fields_text);
+  if (!record.changed_fields_json) return "No attribute field changes.";
+  try {
+    const changes = JSON.parse(record.changed_fields_json);
+    if (!Array.isArray(changes) || changes.length === 0) return "No attribute field changes.";
+    const show = (value) => value === null || value === undefined || value === "" ? "(empty)" : typeof value === "object" ? JSON.stringify(value) : String(value);
+    return changes.map((change) => `${change.field || "Field"}\n  Before: ${show(change.before)}\n  After: ${show(change.after)}`).join("\n\n");
+  } catch {
+    return String(record.changed_fields_json);
+  }
+}
+
+function filterSummary() {
+  const operation = els.operationFilter.selectedOptions[0]?.textContent || "All operations";
+  const service = els.serviceFilter.selectedOptions[0]?.textContent || "All services";
+  const change = els.changeTypeFilter.selectedOptions[0]?.textContent || "All changes";
+  return `UTC dates: ${els.startDate.value || "Any"} through ${els.endDate.value || "Any"} | Operation: ${operation} | Service: ${service} | Change: ${change}`;
+}
+
+async function exportCsv() {
+  els.exportCsvButton.loading = true;
+  els.exportPdfButton.disabled = true;
+  els.exportStatus.textContent = "Preparing CSV…";
+  try {
+    const records = await queryAllMatchingRecords();
+    const columns = [
+      ["event_timestamp_utc", (r) => isoDate(r.event_timestamp)], ["recorded_utc", (r) => isoDate(r.recorded_utc)],
+      ["event_id", (r) => r.event_id], ["batch_id", (r) => r.batch_id], ["wfm_job_id", (r) => r.wfm_job_id],
+      ["emergency_operation", (r) => r.emergency_op_name], ["service_name", (r) => r.service_name], ["layer_name", (r) => r.layer_name],
+      ["layer_id", (r) => r.layer_id], ["feature_globalid", (r) => r.feature_globalid], ["change_type", (r) => r.change_type],
+      ["editor", (r) => r.authenticated_user], ["identity_resolution", (r) => r.identity_resolution], ["geometry_changed", (r) => r.geometry_changed],
+      ["changed_fields", (r) => readableChangedFields(r)], ["geometry_from_x", (r) => r.geometry_from_x], ["geometry_from_y", (r) => r.geometry_from_y],
+      ["geometry_to_x", (r) => r.geometry_to_x], ["geometry_to_y", (r) => r.geometry_to_y], ["geometry_wkid", (r) => r.geometry_wkid],
+      ["geometry_motion_kind", (r) => r.geometry_motion_kind], ["source_item_id", (r) => r.source_item_id], ["service_url", (r) => r.service_url]
+    ];
+    const rows = [columns.map(([name]) => csvValue(name)).join(",")];
+    for (const record of records) rows.push(columns.map(([, getter]) => csvValue(getter(record))).join(","));
+    downloadBlob(new Blob(["\uFEFF", rows.join("\r\n")], { type: "text/csv;charset=utf-8" }), exportFileName("csv"));
+    els.exportStatus.textContent = `CSV exported: ${records.length.toLocaleString()} rows.`;
+  } catch (error) {
+    els.exportStatus.textContent = `CSV export failed: ${errorMessage(error)}`;
+  } finally {
+    els.exportCsvButton.loading = false;
+    els.exportPdfButton.disabled = state.records.length === 0;
+  }
+}
+
+function pdfSafe(value) {
+  return String(value ?? "").replaceAll("→", "->").replace(/[–—]/g, "-").replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/[^\x09\x0A\x0D\x20-\x7E]/g, "?");
+}
+
+async function exportPdf() {
+  els.exportPdfButton.loading = true;
+  els.exportCsvButton.disabled = true;
+  els.exportStatus.textContent = "Preparing PDF report…";
+  try {
+    const records = await queryAllMatchingRecords();
+    const jsPDF = globalThis.jspdf?.jsPDF;
+    if (!jsPDF) throw new Error("The PDF library did not load.");
+    const doc = new jsPDF({ unit: "pt", format: "letter", compress: true });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 46;
+    const contentWidth = pageWidth - margin * 2;
+    let y = margin;
+    const addPage = () => { doc.addPage(); y = margin; };
+    const ensure = (height) => { if (y + height > pageHeight - 46) addPage(); };
+    const lines = (text, width = contentWidth) => doc.splitTextToSize(pdfSafe(text), width);
+    const write = (text, options = {}) => {
+      const size = options.size || 9;
+      const leading = options.leading || size * 1.35;
+      doc.setFont("helvetica", options.bold ? "bold" : "normal");
+      doc.setFontSize(size);
+      doc.setTextColor(...(options.color || [45, 55, 62]));
+      const wrapped = lines(text, options.width || contentWidth);
+      for (const line of wrapped) {
+        ensure(leading);
+        doc.text(line, options.x || margin, y);
+        y += leading;
+      }
+      y += options.after || 0;
+    };
+
+    doc.setDrawColor(242, 169, 0); doc.setLineWidth(4); doc.line(margin, y, pageWidth - margin, y); y += 24;
+    write("Emergency Management Audit Monitor", { size: 18, bold: true, color: [0, 59, 92], after: 4 });
+    write("Audit Trail Report", { size: 14, bold: true, color: [18, 50, 71], after: 10 });
+    write(`Generated: ${new Date().toISOString()} | ${els.identitySummary.textContent || "Authorized user"}`, { size: 8, color: [80, 95, 105], after: 4 });
+    write(filterSummary(), { size: 8, color: [80, 95, 105], after: 12 });
+    const adds = records.filter((r) => r.change_type === "ADD").length;
+    const deletes = records.filter((r) => r.change_type === "DELETE").length;
+    const geometry = records.filter((r) => r.geometry_changed === "Yes").length;
+    write(`Summary: ${records.length} events | ${adds} adds | ${records.length - adds - deletes} updates | ${deletes} deletes | ${geometry} geometry changes`, { size: 10, bold: true, after: 14 });
+
+    records.forEach((record, index) => {
+      const changed = readableChangedFields(record);
+      const movement = record.geometry_changed === "Yes"
+        ? `Movement: (${displayValue(record.geometry_from_x, "?")}, ${displayValue(record.geometry_from_y, "?")}) -> (${displayValue(record.geometry_to_x, "?")}, ${displayValue(record.geometry_to_y, "?")}) | ${displayValue(record.geometry_motion_kind, "GEOMETRY")} | WKID ${displayValue(record.geometry_wkid, "?")}`
+        : "Movement: No geometry movement recorded.";
+      const block = [
+        `${index + 1}. ${displayValue(record.change_type)} | ${formatDate(record.event_timestamp)}`,
+        `${displayValue(record.service_name)} | ${displayValue(record.layer_name)} | Operation: ${displayValue(record.emergency_op_name, "Unassigned")}`,
+        `Editor: ${displayValue(record.authenticated_user, "Unknown")} | Event: ${displayValue(record.event_id)} | Workflow job: ${displayValue(record.wfm_job_id)}`,
+        movement,
+        `Changed fields:\n${changed}`
+      ];
+      ensure(70);
+      doc.setDrawColor(175, 195, 207); doc.setLineWidth(0.7); doc.line(margin, y - 7, pageWidth - margin, y - 7);
+      write(block[0], { size: 10, bold: true, color: [0, 59, 92], after: 3 });
+      write(block.slice(1).join("\n"), { size: 8, leading: 10.5, after: 12 });
+    });
+
+    const pageCount = doc.getNumberOfPages();
+    for (let page = 1; page <= pageCount; page += 1) {
+      doc.setPage(page); doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(90, 105, 115);
+      doc.text(`Emergency Management Audit Trail | Page ${page} of ${pageCount}`, margin, pageHeight - 20);
+    }
+    doc.save(exportFileName("pdf"));
+    els.exportStatus.textContent = `PDF report exported: ${records.length.toLocaleString()} events.`;
+  } catch (error) {
+    els.exportStatus.textContent = `PDF export failed: ${errorMessage(error)}`;
+  } finally {
+    els.exportPdfButton.loading = false;
+    els.exportCsvButton.disabled = state.records.length === 0;
+  }
 }
 
 function createAuditRow(record) {
@@ -614,18 +803,8 @@ function renderDetails(record) {
   els.detailEmpty.hidden = true;
   els.detailList.hidden = false;
 
-  const changed = parseChangedFields(record.changed_fields_json);
-  els.changedFields.textContent = changed;
+  els.changedFields.textContent = readableChangedFields(record);
   els.changedFieldsSection.hidden = false;
-}
-
-function parseChangedFields(value) {
-  if (!value) return "No field-level changes recorded.";
-  try {
-    return JSON.stringify(JSON.parse(value), null, 2);
-  } catch {
-    return String(value);
-  }
 }
 
 async function resolveSourceFeature(record) {
@@ -722,6 +901,8 @@ function wireEvents() {
   });
   els.clearFiltersButton.addEventListener("click", resetFilters);
   els.loadMoreButton.addEventListener("click", () => queryAuditRecords({ reset: false }));
+  els.exportCsvButton.addEventListener("click", exportCsv);
+  els.exportPdfButton.addEventListener("click", exportPdf);
   document.querySelectorAll(".sort-button").forEach((button) => {
     button.addEventListener("click", () => {
       const field = button.dataset.sort;

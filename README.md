@@ -21,4 +21,6 @@ Settings and operator help:
 
 The application follows the CA Security Ops / Mission Insights visual language, including the centered signed-out gate, navy operational surfaces, gold actions, compact panels, semantic status colors, and accessible focus states.
 
+Authenticated users can export every audit row matching the current filters as UTF-8 CSV or generate a paginated PDF audit-trail report. Exports retain event and Workflow Manager identifiers, UTC timestamps, editor attribution, human-readable before/after values, and geometry movement metadata.
+
 Settings are validated and stored in the current browser under `emAuditMonitor.settings.v1`. They control presentation defaults only: title, subtitle, initial date window, query page size, basemap, and visibility of the Emergency Manager Solution link. They do not modify portal permissions, source items, Notebook schedules, Workflow Manager, or audit records.
