@@ -48,6 +48,7 @@ const els = Object.freeze({
   workspace: document.querySelector("#workspace"),
   identitySummary: document.querySelector("#identitySummary"),
   signInButton: document.querySelector("#signInButton"),
+  gateSignInButton: document.querySelector("#gateSignInButton"),
   signOutButton: document.querySelector("#signOutButton"),
   refreshButton: document.querySelector("#refreshButton"),
   filterForm: document.querySelector("#filterForm"),
@@ -193,6 +194,7 @@ function buildWhereClause() {
 
 function showState(name, message = "") {
   const isLoading = name === "loading";
+  document.body.classList.toggle("is-signed-out", name === "signedOut");
   els.workspace.setAttribute("aria-busy", String(isLoading));
   els.signedOutState.hidden = name !== "signedOut";
   els.loadingState.hidden = !isLoading;
@@ -313,6 +315,7 @@ function showSignedOut() {
 
 async function signIn() {
   els.signInButton.loading = true;
+  els.gateSignInButton.loading = true;
   try {
     await esriId.getCredential(`${CONFIG.portalUrl}/sharing`);
     await onAuthenticated();
@@ -321,6 +324,7 @@ async function signIn() {
     else showSignedOut();
   } finally {
     els.signInButton.loading = false;
+    els.gateSignInButton.loading = false;
   }
 }
 
@@ -709,6 +713,7 @@ function resetFilters() {
 
 function wireEvents() {
   els.signInButton.addEventListener("click", signIn);
+  els.gateSignInButton.addEventListener("click", signIn);
   els.signOutButton.addEventListener("click", signOut);
   els.refreshButton.addEventListener("click", () => queryAuditRecords({ reset: true }));
   els.filterForm.addEventListener("submit", (event) => {

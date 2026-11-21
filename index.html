@@ -7,9 +7,9 @@
   <meta name="description" content="Read-only Emergency Management Operations audit monitor">
   <title>Emergency Management Audit Monitor</title>
   <link rel="stylesheet" href="https://js.arcgis.com/5.1/esri/themes/dark/main.css">
-  <link rel="stylesheet" href="./style.css?v=20261120-4">
+  <link rel="stylesheet" href="./style.css?v=20261120-5">
   <script type="module" src="https://js.arcgis.com/5.1/"></script>
-  <script type="module" src="./app.js?v=20261120-4"></script>
+  <script type="module" src="./app.js?v=20261120-5"></script>
 </head>
 <body>
   <a class="skip-link" href="#auditFeed">Skip to audit feed</a>
@@ -88,9 +88,14 @@
       </section>
 
       <section id="statusRegion" class="status-region" aria-live="polite">
-        <div id="signedOutState" class="state-card">
-          <calcite-icon icon="lock" scale="l" aria-hidden="true"></calcite-icon>
-          <div><strong>Authentication required</strong><p>Sign in with an authorized Public Safety ArcGIS Online account to query the private audit service.</p></div>
+        <div id="signedOutState" class="auth-gate-card">
+          <svg class="auth-gate-mark" viewBox="0 0 48 56" aria-hidden="true">
+            <path d="M24 3 42 10v15c0 13-8 22-18 28C14 47 6 38 6 25V10Z"></path>
+            <path d="M15 20h18M15 27h18M15 34h12"></path>
+          </svg>
+          <h2>Emergency Management Audit Monitor</h2>
+          <p>Sign in with your authorized Public Safety ArcGIS Online account to access the private change ledger.</p>
+          <calcite-button id="gateSignInButton" appearance="solid" kind="brand" icon-start="sign-in">Sign in with ArcGIS</calcite-button>
         </div>
         <div id="loadingState" class="state-card" hidden>
           <calcite-loader label="Loading audit records" inline></calcite-loader>
